@@ -1,0 +1,50 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs and notebooks artifacts
+*.log
+.ipynb_checkpoints/
+
+# Packaging artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Local-private radar payloads and acquisition outputs
+# Keep the raw recordings, arrays, and JSON metadata out of the repository.
+data/**/*.npy
+data/**/*.npz
+data/**/*.json
+!data/README.md
+
+# Training/visualization artifacts that are acceptable to share
+# If you want to keep them public, do not ignore them here.
+# They are intentionally not blocked by the ignore rules.
+
+# Local model artifacts
+*.h5
+*.hdf5
+
+# Secret/config local overrides
+.env
+.env.*
+!.env.example
+
+# Local profiling and coverage artifacts
+.coverage
+.pytest_cache/
+htmlcov/
