@@ -1,3 +1,10 @@
+[![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)](#)
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=flat-square&logo=tensorflow&logoColor=white)](#)
+[![Keras](https://img.shields.io/badge/Keras-D00000?style=flat-square&logo=keras&logoColor=white)](#)
+[![NumPy](https://img.shields.io/badge/NumPy-013243?style=flat-square&logo=numpy&logoColor=white)](#)
+[![SciPy](https://img.shields.io/badge/SciPy-8CAAE6?style=flat-square&logo=scipy&logoColor=white)](#)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=flat-square&logo=scikit-learn&logoColor=white)](#)
+[![Matplotlib](https://img.shields.io/badge/Matplotlib-11557C?style=flat-square&logo=python&logoColor=white)](#)
 # FMCW Radar Gesture Recognition
 
 A machine learning pipeline developed as a university laboratory project for recognizing human hand gestures using Frequency-Modulated Continuous Wave (FMCW) radar.
@@ -91,8 +98,8 @@ The classification model is a 2D Convolutional Neural Network built in TensorFlo
 The model successfully separates the gesture classes based on the extracted physics-based signatures.
 
 <div align="center">
-  <img src="assets/training_history.png" alt="Training History" width="45%">
-  <img src="assets/confusion_matrix.png" alt="Confusion Matrix" width="45%">
+  <img src="assets/training_history.png" alt="Training History" width="65%">
+  <img src="assets/confusion_matrix.png" alt="Confusion Matrix" width="35%">
 </div>
 
 ## How to Run
