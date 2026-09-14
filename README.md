@@ -1,27 +1,26 @@
 # FMCW Radar Gesture Recognition
 
-A portfolio-ready machine-learning and signal-processing project for recognizing human hand gestures from Frequency-Modulated Continuous Wave (FMCW) radar tensors.
-
-The project combines:
-
-- a custom radar DSP chain with clutter suppression, Range-Doppler transformation, and azimuth estimation
-- feature extraction into RTM, DTM, and ATM images
-- a TensorFlow/Keras 2D CNN for gesture classification
-- visualizations and generated training artifacts for research and demo use
+A machine learning pipeline developed as a university laboratory project for recognizing human hand gestures using Frequency-Modulated Continuous Wave (FMCW) radar.
 
 <div align="center">
-  <img src="assets/range_doppler_animation.gif" alt="Range-Doppler animation" width="60%">
+  <img src="assets/range_doppler_animation.gif" alt="Range Doppler Animation" width="60%">
   <br>
-  <em>Range-Doppler sample from the push-pull gesture.</em>
+  <em>Range-Doppler Map of a "Push-Pull" gesture captured and processed via the DSP pipeline.</em>
 </div>
 
-## Project Goals
+## Hardware Setup and Data Acquisition
 
-This repository was built as an applied DSP and deep-learning experiment for human gesture recognition using a 60 GHz Infineon radar sensor. The final goal is to show a reproducible data pipeline from raw analog radar data into a trained classifying model.
+Data was collected using the Infineon CY8CKIT-062S2-AI evaluation board, featuring the BGT60TR13C 60GHz radar sensor (1 Tx, 3 Rx antennas). 
 
-## Hardware and Data
+<div align="center">
+  <img src="assets/setup_photo.jpg" alt="Hardware Setup" width="45%">
+  <img src="assets/gui_screenshot.png" alt="Radar Fusion GUI" width="45%">
+</div>
+<br>
 
-The signals were recorded with the Infineon CY8CKIT-062S2-AI evaluation kit using the BGT60TR13C 60 GHz radar sensor. The acquisition setup exposes a 1 Tx × 3 Rx antenna arrangement and produces FMCW frame batches that are converted into spatial-temporal gesture feature maps.
+*Left: The 60GHz radar sensor setup. Right: The Infineon Radar Fusion GUI streaming Time-Domain and Range-Doppler features.*
+
+---
 
 ## Repository Structure
 
@@ -44,79 +43,75 @@ gesture_radar/
 └── README.md               # project documentation
 ```
 
-## DSP Pipeline
+## Digital Signal Processing (DSP) Pipeline
 
-The preprocessing path makes the gesture data learnable for a standard 2D CNN:
+Feeding raw radar ADC data directly into a Convolutional Neural Network (CNN) is suboptimal due to background clutter and signal properties. A custom DSP pipeline was implemented to extract physically relevant features.
 
-1. Static clutter attenuation via an MTI filter.
-2. Range-Doppler extraction through the Doppler algorithm.
-3. Beamforming across the horizontal antenna pair for azimuth tracking.
-4. Conversion of the feature volumes into RTM, DTM, and ATM maps.
-5. Decibel scaling for stable neural-network training.
+### 1. Removing Static Clutter (MTI Filter)
+Radar waves reflect off stationary objects in the room (walls, desks), creating a large DC bias at the 0 m/s Doppler bin. An Exponential Moving Average (EMA) Moving Target Indicator (MTI) filter ($\alpha = 0.5$) was applied to suppress static clutter and isolate the moving hand.
 
-The repository also includes the plotting scripts that generate comparative visual diagnostics such as:
+<div align="center">
+  <img src="assets/mti_comparison.png" alt="MTI Filter Comparison" width="80%">
+</div>
 
-- static clutter comparison before and after filtering
-- linear-versus-dB magnitude scaling comparison
-- gesture sample maps for RTM, DTM, and ATM
-- range-Doppler animation and final training artifacts
+### 2. Linear vs. Logarithmic (dB) Scaling
+Radar signals exhibit a high dynamic range. Weak reflections (such as the diffuse micro-Doppler edges of a hand) are mathematically overshadowed by specular reflections. Converting the 2D FFT arrays into a Decibel (dB) scale exposes the full physical footprint of the gesture to the neural network.
 
-## Model
+<div align="center">
+  <img src="assets/linear_vs_db.png" alt="Linear vs DB Scale" width="80%">
+</div>
 
-The CNN is constructed in [src/models/cnn.py](src/models/cnn.py) with a small convolutional stack, batch normalization, pooling, dropout, and a dense classifier. The model keeps the time and spatial bins visible by preserving the feature map structure instead of collapsing the map too early with global pooling.
+### 3. Azimuth Correction for L-Shaped Arrays
+The BGT60TR13C features an L-shaped antenna array (3 Rx antennas). Applying a standard Digital Beamforming (DBF) algorithm to all three antennas assumes a Uniform Linear Array (ULA), which introduces phase errors. The pipeline explicitly isolates the horizontal pair (Rx1 and Rx3) to maintain correct azimuth tracking for lateral movements.
 
-## Getting Started
+---
 
-Create a virtual environment and install the repository requirements:
+## Feature Engineering
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+To process the 3D tensor over time using standard 2D CNNs, the data is aggregated into three multi-channel images per gesture:
+* **RTM (Range-Time Map):** Distance over time.
+* **DTM (Doppler-Time Map):** Velocity over time.
+* **ATM (Azimuth-Time Map):** Angle over time.
 
-On Windows PowerShell use:
+![Gesture Features](assets/gesture_samples.png)
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+---
 
-Run the main training pipeline:
+## Neural Network Architecture
 
-```bash
-python -m src.train
-```
+The classification model is a 2D Convolutional Neural Network built in TensorFlow/Keras. 
 
-Generate visualization examples:
+**Architectural Details:**
+1. **Instance-Wise Normalization:** Standard scaling is applied per-gesture rather than globally across the dataset. This reduces the network's reliance on absolute signal strength, which varies based on user distance and room size, encouraging the model to learn relative temporal shapes.
+2. **Spatial Preservation:** Instead of using `GlobalAveragePooling2D` (which averages out the time and angle dimensions, making directional gestures indistinguishable), a `Flatten()` layer is used to maintain the spatial-temporal coordinates.
+3. **Data Augmentation:** A 5% `RandomTranslation` is applied during training to improve translation invariance.
 
-```bash
-python -m src.visualize
-python -m src.visualize_dsp
-python -m src.animate
-```
+## Results
 
-## Data Notes
+The model successfully separates the gesture classes based on the extracted physics-based signatures.
 
-The repository is designed to ingest a local dataset under the `data/` directory and includes a `data/README.md` note to remind contributors that raw acquisitions, NPY files, and preprocessing exports should remain local to avoid bloating the repository.
+<div align="center">
+  <img src="assets/training_history.png" alt="Training History" width="45%">
+  <img src="assets/confusion_matrix.png" alt="Confusion Matrix" width="45%">
+</div>
 
-## Reproducibility
+## How to Run
 
-You can set up a clean experiment with package metadata via `pyproject.toml` and install with `pip`. The current training configuration is described in [src/config.py](src/config.py). If you want to reproduce the results on a different machine, align the TensorFlow version carefully because the TensorFlow/Keras interface is tightly version-sensitive in this repo.
+1. **Install Dependencies:**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+2. **Process Raw Data and Build Dataset:**
+   ```bash
+   python -m src.data.extract
+   python -m src.data.build
+   ```
+3. **Train the Model:**
+   ```bash
+   python -m src.train
+   ```
 
-## Licenses
-
-This project is distributed under the MIT license. See [LICENSE](LICENSE).
-
-## Portfolio Guidance
-
-This project is structured for a GitHub portfolio with:
-
-- a clean top-level repository README
-- dependency metadata
-- a Python package structure
-- a small automated import smoke test
-- generated-image and data artifacts ignored by default
-
-For a public portfolio repository, consider replacing the included dataset files with a small, anonymized sample dataset or publishing the script-only pipeline while keeping the raw measurement files private.
+## Acknowledgements and License
+The radar DSP helper scripts (`DigitalBeamForming.py`, `DopplerAlgo.py`, etc.) are provided under the BSD 3-Clause License by Infineon Technologies AG.
